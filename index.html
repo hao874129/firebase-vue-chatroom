@@ -5,7 +5,8 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+  <title>chatroom</title>
+  <script src="https://kit.fontawesome.com/5873ec5b15.js" crossorigin="anonymous"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
   <style>
@@ -19,12 +20,6 @@
       justify-content: center;
       font-size: 24px;
       color: #999;
-    }
-
-    .chatroom {
-      height: 80vh;
-      overflow-y: auto;
-      border-radius: 0 0 4px 4px;
     }
 
     .roomHead {
@@ -58,14 +53,104 @@
     .zoom {
       background-color: #28CB40;
     }
+
+    .roomBody {
+      width: 100%;
+      height: 65vh;
+      overflow-y: auto;
+    }
+
+    .message_image {
+      /* margin: 4px 24px 4px 4px; */
+      padding: 4px 24px 4px 4px;
+    }
+
+    .message_image img {
+      border-radius: 5px;
+      max-width: 100%;
+      max-height: 335px;
+    }
+
+    .roomBottom {
+      width: 100%;
+    }
+
+    .roomBottom .roomBottom_upload {
+      background-color: #F6F6F6;
+    }
+
+    .roomBottom_upload_trigger {
+      height: 24px;
+      width: 24px;
+      padding: 1px;
+      display: inline-block;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .roomBottom_upload_trigger :hover {
+      border: solid 1px #DCDCDC;
+    }
+
+    .roomBottom_upload_trigger input {
+      /* width: 100%; */
+      left: 0;
+      right: 0;
+      opacity: 0;
+      position: absolute;
+      cursor: pointer;
+      /* 讓input file可以支援pointer要加pl100% */
+      padding-left: 100%;
+    }
+
+    .fa-ftas {
+      line-height: 1;
+    }
+
+    .roomBottom_upload_progress {
+      width: 50%;
+      display: flex;
+      align-items: center;
+    }
+
+    .progress {
+      width: 100%;
+      margin-right: 16px;
+      margin-left: 16px;
+      border-radius: 5px;
+      background-color: #D4D9E1;
+      height: 6px;
+    }
+
+    .progress_state {
+      background-color: #00CE00;
+      height: 6px;
+      width: 0%;
+      border-radius: 5px;
+      float: right;
+    }
+
+    .progress_number {
+      color: #B7B7B7;
+    }
+
+    .roomBottom .roomBottom_input {
+      border-radius: 0 0 4px 4px;
+    }
+
+    .blockBody {
+      border-radius: 0 0 4px 4px;
+    }
   </style>
 </head>
 
 <body>
   <div id="app" class="container my-3">
-    <div class="row justify-content-center">
+    <div class="row justify-content-center d-flex 
+    flex-column-reverse flex-md-row">
 
-      <div class="col-md-6 my-3">
+      <div class="col-md-6 my-3 chatroom">
+
         <div class="roomHead rounded-top">
           <div class="roomHead__topButtons">
             <div class="roomHead__button close"></div>
@@ -73,15 +158,14 @@
             <div class="roomHead__button zoom"></div>
           </div>
           <div class="roomHead__title text-light">
-            <h1 class="fs-6 text-center m-3">vue + firebase realtime chatroom</h1>
+            <h1 class="fs-6 text-center m-3">vue+firebase realtime chatroom</h1>
           </div>
         </div>
 
-
-        <div class="card rounded-bottom pt-3 chatroom">
+        <div class="card rounded-0 border-bottom-0 pt-3 roomBody" id="js-scrollToBody">
           <div class="card-body pt-0">
             <div class="message-block ">
-              <div class="row gx-2 mb-3" v-for="(item, key) in chatroom" :key="key"
+              <div class="row gx-2 mb-3" v-for="(item, key) in chatroom" :key="item.key"
                 :class="{ 'text-end flex-row-reverse': item.username === username }">
                 <div class="col-1 d-flex justify-content-center">
                   <div class="avator mt-1">
@@ -95,10 +179,12 @@
                       {{ new Date(item.time).toLocaleDateString() }}
                       {{ new Date(item.time).toLocaleTimeString() }}</small>
                   </div>
-                  <div class="message-content p-2 mt-2 rounded-3" :class="{ 'bg-info text-white': item.username === username,
-                      'bg-light': item.username !== username
-                      }">
+                  <div v-if="item.type == 'text'" class="p-2 mt-2 rounded-3"
+                    :class="{ 'bg-info text-white': item.username === username,'bg-light': item.username !== username }">
                     <p class="mb-0">{{ item.message }}</p>
+                  </div>
+                  <div v-if="item.type == 'image'" class="message_image">
+                    <img :src="item.message">
                   </div>
                 </div>
               </div>
@@ -106,11 +192,33 @@
           </div>
         </div>
 
-        <div class="input-group bg-white pb-3">
-          <input type="text" class="form-control" v-model="message" :disabled="!username" @keyup.enter="addMessage"
-            placeholder="所有內容將存於 firebase">
-          <button class="btn btn-outline-secondary" type="button" :disabled="!username" @click="addMessage">送出</button>
+
+        <div class="roomBottom">
+          <!-- 上傳圖片的區域 -->
+          <div class="card rounded-0 border-bottom-0 roomBottom_upload p-1 d-flex flex-row">
+            <div class="roomBottom_upload_trigger" :>
+              <i class="fa-ftas fa-solid fa-image fa-lg">
+                <input type="file" accept="image/*" @change="addImage($event)" :disabled="!username">
+              </i>
+            </div>
+            <!-- 使用v-show，當符合條件時才顯示進度條（upload==ture) -->
+            <div class="roomBottom_upload_progress" v-show="upload">
+              <div class="progress d-flex flex-row">
+                <div id="js-progressBar" class="progress_state"></div>
+              </div>
+              <small class="progress_number">{{progress}}</small>
+              <!-- <div class="progress_number">GG{{progress}}</div> -->
+            </div>
+          </div>
+
+          <!-- 輸入文字區域 -->
+          <div class="input-group bg-white">
+            <input type="text" class="form-control pb-5 rounded-bottom roomBottom_input" v-model="message"
+              :disabled="!username" @keyup.enter="addMessage" placeholder="在此輸入訊息...">
+            <!-- <button class="btn btn-outline-secondary" type="button" :disabled="!username" @click="addMessage">送出</button> -->
+          </div>
         </div>
+
       </div>
 
       <div class="col-md-3 my-3">
@@ -121,7 +229,7 @@
             <div class="roomHead__button zoom"></div>
           </div>
         </div>
-        <div class="card">
+        <div class="card blockBody">
           <div class="card-body">
             <div class="mb-3">
               <label for="username" class="form-label">使用者名稱</label>
@@ -149,28 +257,33 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.13.0/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.13.0/firebase-analytics.js";
     import { getDatabase, ref, onValue, child, push, update, set } from 'https://www.gstatic.com/firebasejs/9.13.0/firebase-database.js'
+    import { getStorage, ref as sRef, uploadBytesResumable, getDownloadURL } from 'https://www.gstatic.com/firebasejs/9.13.0/firebase-storage.js'
     // TODO: Add SDKs for Firebase products that you want to use
     // https://firebase.google.com/docs/web/setup#available-libraries
 
     // Your web app's Firebase configuration
     // For Firebase JS SDK v7.20.0 and later, measurementId is optional
     const firebaseConfig = {
-      apiKey: "AIzaSyBACrjZ_dMIS9awIAaD-DpABzMyxtVB7xs",
-      authDomain: "fir-vue-chatroom-dafc9.firebaseapp.com",
-      databaseURL: "https://fir-vue-chatroom-dafc9-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "fir-vue-chatroom-dafc9",
-      storageBucket: "fir-vue-chatroom-dafc9.appspot.com",
-      messagingSenderId: "367995533265",
-      appId: "1:367995533265:web:df00f02cf29e94b9b892f0",
-      measurementId: "G-GHSJ2VY7JC"
+      apiKey: "AIzaSyCLOUh7uVStUZ35KyseKQiXapuyOemfIi4",
+      authDomain: "chatroom-b2100.firebaseapp.com",
+      databaseURL: "https://chatroom-b2100-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "chatroom-b2100",
+      storageBucket: "chatroom-b2100.appspot.com",
+      messagingSenderId: "175516327812",
+      appId: "1:175516327812:web:e8ef7ba78e1f5a728547d1",
+      measurementId: "G-73KCSNNEG1"
     };
 
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const analytics = getAnalytics(app);
+
+    // 導向 realtime database
     const db = getDatabase(app);
     const chatroomRef = ref(db, 'chatroom')
 
+    // 導向 storage (儲存圖片的地方) 
+    const storage = getStorage(app)
 
     //vue
     const vueApp = Vue.createApp({
@@ -180,6 +293,8 @@
           tempUsername: '',
           username: '',
           message: '',
+          upload: false, // 用來判斷是否顯示進度條
+          progress: '' // 用來放進度條％數文字用
         }
       },
       methods: {
@@ -201,19 +316,95 @@
               username: this.username,
               message: this.message,
               time: new Date().getTime(),
+              type: 'text'
             })
 
             this.message = ''
           }
+        },
+        addImage(e) {
+          const file = e.target.files[0]
+
+          // 因為 storage 沒辦法自動產生亂數 key ，故自己產生
+          const fileName = Math.floor(Date.now() / 1000) + `_${file.name}`
+          // 上傳資訊設定
+          const metadata = {
+            contentType: 'image/*'
+          }
+          const storageRef = sRef(storage, 'images/' + fileName)
+          const uploadTask = uploadBytesResumable(storageRef, file, metadata);
+
+          // 取得HTML進度條元素
+          const progressBar = document.querySelector('#js-progressBar');
+
+          // Listen for state changes, errors, and completion of the upload.
+          uploadTask.on('state_changed',
+            (snapshot) => {
+              // 取得上傳進度 %
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              // 開啟上傳進度條
+              if (progress < 100) {
+                this.upload = true
+                this.progress = `${Math.floor(progress)}%`
+                progressBar.setAttribute('style', `width:${progress}%`)
+              }
+              console.log('image upload is ' + progress + '% done');
+              switch (snapshot.state) {
+                case 'paused':
+                  // console.log('Upload is paused');
+                  break;
+                case 'running':
+                  // console.log('Upload is running');
+                  break;
+              }
+            },
+            (error) => {
+              // A full list of error codes is available at
+              // https://firebase.google.com/docs/storage/web/handle-errors
+              switch (error.code) {
+                case 'storage/unauthorized':
+                  // User doesn't have permission to access the object
+                  break;
+                case 'storage/canceled':
+                  // User canceled the upload
+                  break;
+
+                // ...
+
+                case 'storage/unknown':
+                  // Unknown error occurred, inspect error.serverResponse
+                  break;
+              }
+            },
+            () => {
+              this.upload = false
+              // Upload completed successfully, now we can get the download URL
+              getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                console.log('File available at', downloadURL);
+                // 亂數產生一個 key
+                const key = push(child(ref(db), 'chatroom')).key
+                set(ref(db, 'chatroom/' + key), {
+                  key: key,
+                  username: this.username,
+                  message: downloadURL,
+                  time: new Date().getTime(),
+                  type: 'image'
+                })
+              });
+            }
+          )
         }
       },
       mounted() {
         onValue(chatroomRef, (snapshot) => {
           const data = snapshot.val();
-          // updateStarCount(postElement, data);
           console.log(data);
           this.chatroom = data
         });
+      },
+      updated() {
+        const roomBody = document.querySelector('#js-scrollToBody')
+        roomBody.scrollTop = roomBody.scrollHeight
       }
     }).mount('#app')
 
