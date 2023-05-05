@@ -207,7 +207,6 @@
                 <div id="js-progressBar" class="progress_state"></div>
               </div>
               <small class="progress_number">{{progress}}</small>
-              <!-- <div class="progress_number">GG{{progress}}</div> -->
             </div>
           </div>
 
@@ -306,9 +305,7 @@
           this.username = this.tempUsername
         },
         addMessage() {
-          if (!this.message.trim()) {
-            return
-          }
+          if (!this.message.trim()) return
           else {
             console.log(this.message);
             // 亂數產生一個 key
@@ -402,7 +399,7 @@
       mounted() {
         onValue(chatroomRef, (snapshot) => {
           const data = snapshot.val();
-          console.log(data);
+          console.log(':::mounted()：',data);
           this.chatroom = data
         });
       },
